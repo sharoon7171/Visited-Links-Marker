@@ -46,11 +46,6 @@
     }
 
     setupEventListeners() {
-      // Handle extension installation
-      chrome.runtime.onInstalled.addListener((details) => {
-        this.handleInstallation(details);
-      });
-
       // Handle messages from popup and content scripts
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         this.handleMessage(message, sender, sendResponse);
@@ -86,13 +81,6 @@
       chrome.storage.onChanged.addListener((changes, namespace) => {
         this.handleStorageChange(changes, namespace);
       });
-    }
-
-    async handleInstallation(details) {
-      if (details.reason === 'install') {
-        // Initialize default settings
-        await this.initializeDefaultSettings();
-      }
     }
 
     async initializeDefaultSettings() {
@@ -422,7 +410,6 @@
       }
     }
 
-
     async notifyAllTabs(message) {
       try {
         const tabs = await chrome.tabs.query({});
@@ -466,5 +453,23 @@
   }
 
   // Initialize service
-  new VisitedLinkService();
+  const service = new VisitedLinkService();
+
+  // Handle extension installation (outside class, like HistoryGuard)
+  chrome.runtime.onInstalled.addListener(async (details) => {
+    // Open project URL on install or update (like HistoryGuard)
+    try {
+      await chrome.tabs.create({ 
+        url: 'https://www.sqtech.dev/projects/visited-links-marker',
+        active: true
+      });
+    } catch (error) {
+      // Silent error handling for tab creation
+    }
+
+    // Handle install-specific logic
+    if (details.reason === 'install') {
+      await service.initializeDefaultSettings();
+    }
+  });
 })();
