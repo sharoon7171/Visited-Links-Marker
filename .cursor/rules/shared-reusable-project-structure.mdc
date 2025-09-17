@@ -1,0 +1,985 @@
+---
+description: Shared-Reusable Chrome Extension Project Structure - Zero Code Duplication Strategy
+globs:
+- "**/core/**"
+- "**/utilities/**"
+- "**/components/**"
+- "**/services/**"
+- "**/templates/**"
+- "**/styles/**"
+- "**/ui/**"
+- "**/controllers/**"
+- "**/managers/**"
+- "**/handlers/**"
+- "**/validators/**"
+- "**/formatters/**"
+- "**/models/**"
+- "**/interfaces/**"
+- "**/functions/**"
+- "**/hooks/**"
+- "**/pages/**"
+- "**/content-scripts/**"
+- "**/project-structure"
+- "**/architecture"
+alwaysApply: true
+priority: critical
+---
+
+# Reusable Chrome Extension Project Structure
+
+## Core Principle: ZERO CODE DUPLICATION (DRY)
+- **Write Once, Use Everywhere** - every function/component written once and reused
+- **Single Source of Truth** - change once, updates everywhere automatically
+- **Reusable Foundation** - common utilities, patterns, and components organized naturally
+- **Reusable Components** - UI components that can be used across all pages/contexts
+- **Common Services** - business logic shared across all features
+- **Base Classes** - foundational classes that other components extend
+- **No Code Duplication** - absolutely no repeated code anywhere in the project
+- **Create Only What's Needed** - never create directories/files "just in case"
+- **Need-Based Development** - create reusable components only when actually needed
+- **Minimal Structure** - start with minimal structure, expand only when required
+- **No Premature Optimization** - don't create infrastructure until you need it
+
+## Minimal Project Creation Rules
+
+### ❌ NEVER CREATE UNNECESSARY FILES
+- **Don't create placeholder files** - only create files with real functionality
+- **Don't create "just in case" files** - create only when actually needed
+- **Don't create empty files** - files should contain actual functionality
+
+### ✅ CREATE ONLY WHEN NEEDED (No Empty Directories)
+- **Create directories only when creating files** - no empty directory structure
+- **Start with minimal project** - only essential files initially
+- **Expand structure as needed** - add directories when you add files to them
+- **No placeholder directories** - every directory contains actual files
+
+### ✅ MINIMAL PROJECT START
+```
+chrome-extension/
+├── manifest.json                    # Only when creating extension
+└── service-worker.js               # Only when needed (NO imports)
+```
+
+### ✅ EXPAND STRUCTURE AS NEEDED
+When you need to create files, create the directory structure at the same time:
+
+**Example 1: Creating a reusable utility**
+```
+chrome-extension/
+├── manifest.json
+├── service-worker.js               # Service worker (NO imports)
+└── utilities/                      # Created when first file is added
+    └── dom-utils.mjs               # File and directory created together
+```
+
+**Example 2: Adding a popup page**
+```
+chrome-extension/
+├── manifest.json
+├── service-worker.js               # Service worker (NO imports)
+├── utilities/
+│   └── dom-utils.mjs
+└── pages/                          # Created when first file is added
+    └── popup/
+        ├── popup.html              # File and directory created together
+        └── popup.mjs
+```
+
+**Example 3: Adding reusable components**
+```
+chrome-extension/
+├── manifest.json
+├── service-worker.js               # Service worker (NO imports)
+├── utilities/
+│   └── dom-utils.mjs
+├── components/                     # Created when first component is added
+│   └── button.mjs                  # File and directory created together
+└── pages/
+    └── popup/
+        ├── popup.html
+        └── popup.mjs
+```
+
+### ✅ PRINCIPLE: DIRECTORY + FILE CREATION
+- **Never create empty directories** - always create with files
+- **Create directory structure only when needed** - as you add functionality
+- **Start minimal, grow organically** - based on actual requirements
+- **No premature structure** - don't create "just in case" directories
+
+### ✅ ORGANIC GROWTH APPROACH
+
+**Start with absolute minimum:**
+```
+chrome-extension/
+├── manifest.json
+└── service-worker.mjs
+```
+
+**Grow only when you add functionality:**
+```
+chrome-extension/
+├── manifest.json
+├── service-worker.js               # Service worker (NO imports)
+└── utilities/                      # Created when first reusable file is needed
+    └── dom-utils.mjs               # Directory and file created together
+```
+
+**Continue growing as needed:**
+```
+chrome-extension/
+├── manifest.json
+├── service-worker.js               # Service worker (NO imports)
+├── utilities/
+│   └── dom-utils.mjs
+├── components/                     # Created when first component is needed
+│   └── button.mjs                  # Directory and file created together
+└── pages/                          # Created when first page is needed
+    └── popup/
+        ├── popup.html              # Directory and files created together
+        └── popup.mjs
+```
+
+## When to Create Reusable Components
+
+### ✅ CREATE REUSABLE COMPONENTS WHEN:
+- **You have duplicate code** - same function appears in 2+ places
+- **You need reusable UI** - same component used across multiple pages
+- **You have common business logic** - same service logic used in multiple features
+- **You have repeated utilities** - same helper functions used everywhere
+- **You have common patterns** - same base functionality needed by multiple components
+
+### ❌ DON'T CREATE REUSABLE COMPONENTS WHEN:
+- **"Maybe we'll need this"** - creating for future hypothetical use
+- **"It might be useful"** - creating without immediate need
+- **"Just in case"** - creating placeholder infrastructure
+- **"Best practice"** - creating structure you think you should have
+- **"Following patterns"** - creating components to match a pattern without actual need
+
+### ✅ REUSABLE COMPONENT CREATION EXAMPLES
+
+**Scenario 1: You have duplicate DOM manipulation code**
+```javascript
+// ❌ BEFORE: Duplicate code in multiple files
+// popup-page.mjs
+const createButton = (text) => {
+  const button = document.createElement('button');
+  button.textContent = text;
+  button.className = 'btn-primary';
+  return button;
+};
+
+// options-page.mjs  
+const createButton = (text) => {
+  const button = document.createElement('button');
+  button.textContent = text;
+  button.className = 'btn-primary';
+  return button;
+};
+
+// ✅ AFTER: Create reusable utility when you have duplication
+// utilities/dom-utils.mjs
+export const createButton = (text) => {
+  const button = document.createElement('button');
+  button.textContent = text;
+  button.className = 'btn-primary';
+  return button;
+};
+
+// Now both pages import and use the reusable function
+```
+
+**Scenario 2: You need the same API service in multiple places**
+```javascript
+// ❌ BEFORE: Duplicate API logic
+// popup-page.mjs
+const fetchUserData = async (userId) => {
+  const response = await fetch(`/api/users/${userId}`);
+  return response.json();
+};
+
+// content-script.mjs
+const fetchUserData = async (userId) => {
+  const response = await fetch(`/api/users/${userId}`);
+  return response.json();
+};
+
+// ✅ AFTER: Create reusable service when you have duplication
+// services/api-service.mjs
+export class ApiService {
+  static async fetchUserData(userId) {
+    const response = await fetch(`/api/users/${userId}`);
+    return response.json();
+  }
+}
+
+// Now both files import and use the reusable service
+```
+
+## DRY Principle Implementation Patterns
+
+### 1. Reusable Foundation Strategy
+```javascript
+// ✅ WRITE ONCE, USE EVERYWHERE
+// core/base-classes.mjs
+export class BaseComponent {
+  constructor(config) {
+    this.config = config;
+    this.initialize();
+  }
+  
+  // Common methods used by ALL components
+  initialize() { /* */ }
+  render() { /* */ }
+  destroy() { /* */ }
+  addEventListeners() { /* */ }
+  removeEventListeners() { /* */ }
+}
+
+// ✅ REUSE IN ALL COMPONENTS
+// components/button-component.mjs
+import { BaseComponent } from '../core/base-classes.mjs';
+export class ButtonComponent extends BaseComponent {
+  // Only button-specific logic here
+  render() {
+    return this.createElement('button', this.config);
+  }
+}
+
+// components/modal-component.mjs
+import { BaseComponent } from '../core/base-classes.mjs';
+export class ModalComponent extends BaseComponent {
+  // Only modal-specific logic here
+  render() {
+    return this.createElement('div', { className: 'modal' });
+  }
+}
+```
+
+### 2. Centralized Utilities Strategy
+```javascript
+// ✅ CENTRALIZED UTILITIES - Used everywhere
+// utilities/dom-utils.mjs
+export const createElement = (tag, options = {}) => {
+  const element = document.createElement(tag);
+  if (options.className) element.className = options.className;
+  if (options.textContent) element.textContent = options.textContent;
+  return element;
+};
+
+export const addEventListeners = (element, events) => {
+  Object.entries(events).forEach(([event, handler]) => {
+    element.addEventListener(event, handler);
+  });
+};
+
+// ✅ REUSE IN ALL PAGES
+// pages/popup-page.mjs
+import { createElement, addEventListeners } from '../utilities/dom-utils.mjs';
+
+// pages/options-page.mjs
+import { createElement, addEventListeners } from '../utilities/dom-utils.mjs';
+
+// content-scripts/main-content-script.mjs
+import { createElement, addEventListeners } from '../utilities/dom-utils.mjs';
+```
+
+### 3. Reusable Services Strategy
+```javascript
+// ✅ CENTRALIZED BUSINESS LOGIC
+// services/api-service.mjs
+export class ApiService {
+  static async get(url) {
+    // Centralized API logic - used everywhere
+    const response = await fetch(url);
+    return response.json();
+  }
+  
+  static async post(url, data) {
+    // Centralized API logic - used everywhere
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+}
+
+// ✅ REUSE IN ALL FEATURES
+// pages/popup-page.mjs
+import { ApiService } from '../services/api-service.mjs';
+
+// pages/options-page.mjs
+import { ApiService } from '../services/api-service.mjs';
+
+// content-scripts/main-content-script.mjs
+import { ApiService } from '../services/api-service.mjs';
+```
+
+### 4. Composition over Duplication
+```javascript
+// ✅ BUILD FEATURES BY COMPOSING REUSABLE COMPONENTS
+// features/search-feature.mjs
+import { BaseComponent } from '../core/base-classes.mjs';
+import { InputComponent } from '../components/input-component.mjs';
+import { ButtonComponent } from '../components/button-component.mjs';
+import { ApiService } from '../services/api-service.mjs';
+
+export class SearchFeature extends BaseComponent {
+  constructor(config) {
+    super(config);
+    this.input = new InputComponent({ placeholder: 'Search...' });
+    this.button = new ButtonComponent({ text: 'Search' });
+  }
+  
+  render() {
+    // Compose reusable components instead of duplicating code
+    return this.createElement('div', {
+      children: [this.input.render(), this.button.render()]
+    });
+  }
+}
+```
+
+## Complete REUSABLE Project Structure
+```
+chrome-extension/
+├── manifest.json                           # Extension configuration
+├── service-worker.js                       # Main background worker entry point (NO imports)
+│
+├── core/                                   # CORE FOUNDATION (Zero Duplication)
+│   ├── base-classes.mjs                   # Base classes for all components
+│   ├── common-interfaces.mjs              # Reusable interfaces
+│   ├── error-handling.mjs                 # Centralized error handling
+│   ├── logging.mjs                        # Centralized logging
+│   ├── constants.mjs                      # All constants in one place
+│   ├── config.mjs                         # Centralized configuration
+│   └── types.mjs                          # Reusable type definitions
+│
+├── utilities/                              # Reusable utility functions
+│   ├── dom-utils.mjs                      # DOM manipulation utilities
+│   ├── data-utils.mjs                     # Data processing utilities
+│   ├── validation-utils.mjs               # Validation utilities
+│   ├── formatting-utils.mjs               # Formatting utilities
+│   ├── async-utils.mjs                    # Async operation utilities
+│   ├── storage-utils.mjs                  # Storage operation utilities
+│   ├── messaging-utils.mjs                # Messaging utilities
+│   └── chrome-api-utils.mjs               # Chrome API utilities
+│
+├── components/                             # Reusable UI components
+│   ├── base-component.mjs                 # Base component class
+│   ├── button-component.mjs               # Reusable button
+│   ├── input-component.mjs                # Reusable input
+│   ├── modal-component.mjs                # Reusable modal
+│   ├── form-component.mjs                 # Reusable form
+│   ├── list-component.mjs                 # Reusable list
+│   ├── table-component.mjs                # Reusable table
+│   └── notification-component.mjs         # Reusable notification
+│
+├── services/                               # Reusable business logic
+│   ├── api-service.mjs                    # Centralized API service
+│   ├── storage-service.mjs                # Centralized storage service
+│   ├── messaging-service.mjs              # Centralized messaging service
+│   ├── validation-service.mjs             # Centralized validation service
+│   ├── formatting-service.mjs             # Centralized formatting service
+│   └── error-service.mjs                  # Centralized error service
+│
+├── hooks/                                  # Reusable logic hooks
+│   ├── use-storage.mjs                    # Storage hook
+│   ├── use-messaging.mjs                  # Messaging hook
+│   ├── use-validation.mjs                 # Validation hook
+│   ├── use-formatting.mjs                 # Formatting hook
+│   └── use-api.mjs                        # API hook
+│
+├── features/                               # REUSABLE FEATURES (Composed from core/)
+│   ├── ui/                                # Reusable UI features
+│   │   ├── search-feature.mjs             # Search functionality
+│   │   ├── filter-feature.mjs             # Filter functionality
+│   │   ├── sort-feature.mjs               # Sort functionality
+│   │   ├── pagination-feature.mjs         # Pagination functionality
+│   │   └── navigation-feature.mjs         # Navigation functionality
+│   │
+│   ├── data/                              # Reusable data features
+│   │   ├── data-manager.mjs               # Data management
+│   │   ├── cache-manager.mjs              # Cache management
+│   │   ├── sync-manager.mjs               # Sync management
+│   │   └── backup-manager.mjs             # Backup management
+│   │
+│   └── integration/                       # Reusable integrations
+│       ├── chrome-integration.mjs         # Chrome API integration
+│       ├── api-integration.mjs            # External API integration
+│       └── storage-integration.mjs        # Storage integration
+│
+├── templates/                              # HTML Templates (Pure Structure)
+│   ├── pages/
+│   │   ├── popup.html                      # Popup page structure only
+│   │   ├── options.html                    # Options page structure only
+│   │   ├── background.html                 # Background page structure (if needed)
+│   │   └── content-overlay.html            # Content script overlay structure
+│   │
+│   ├── components/
+│   │   ├── basic/
+│   │   │   ├── button.html                 # Button HTML template
+│   │   │   ├── input.html                  # Input HTML template
+│   │   │   ├── label.html                  # Label HTML template
+│   │   │   ├── icon.html                   # Icon HTML template
+│   │   │   ├── badge.html                  # Badge HTML template
+│   │   │   ├── spinner.html                # Spinner HTML template
+│   │   │   ├── tooltip.html                # Tooltip HTML template
+│   │   │   ├── toggle.html                 # Toggle HTML template
+│   │   │   ├── checkbox.html               # Checkbox HTML template
+│   │   │   ├── radio.html                  # Radio HTML template
+│   │   │   ├── select.html                 # Select HTML template
+│   │   │   └── divider.html                # Divider HTML template
+│   │   │
+│   │   ├── composite/
+│   │   │   ├── search-box.html             # Search box HTML template
+│   │   │   ├── form-field.html             # Form field HTML template
+│   │   │   ├── button-group.html           # Button group HTML template
+│   │   │   ├── dropdown-menu.html          # Dropdown menu HTML template
+│   │   │   ├── tab-item.html               # Tab item HTML template
+│   │   │   ├── list-item.html              # List item HTML template
+│   │   │   ├── card-section.html           # Card section HTML template
+│   │   │   └── toolbar.html                # Toolbar HTML template
+│   │   │
+│   │   └── complex/
+│   │       ├── header.html                 # Header HTML template
+│   │       ├── footer.html                 # Footer HTML template
+│   │       ├── navigation.html             # Navigation HTML template
+│   │       ├── sidebar.html                # Sidebar HTML template
+│   │       ├── form.html                   # Form HTML template
+│   │       ├── table.html                  # Table HTML template
+│   │       ├── list.html                   # List HTML template
+│   │       ├── grid.html                   # Grid HTML template
+│   │       ├── card.html                   # Card HTML template
+│   │       ├── modal.html                  # Modal HTML template
+│   │       ├── tabs.html                   # Tabs HTML template
+│   │       └── accordion.html              # Accordion HTML template
+│   │
+│   └── layouts/
+│       ├── page-layout.html                # Basic page layout
+│       ├── popup-layout.html               # Popup layout template
+│       ├── options-layout.html             # Options layout template
+│       └── error-layout.html               # Error layout template
+│
+├── styles/                                 # CSS Styles (Pure Presentation)
+│   ├── base/
+│   │   ├── reset.css                       # CSS reset only
+│   │   ├── variables.css                   # CSS custom properties only
+│   │   ├── typography.css                  # Typography styles only
+│   │   ├── colors.css                      # Color definitions only
+│   │   ├── spacing.css                     # Spacing utilities only
+│   │   ├── grid.css                        # Grid system only
+│   │   └── layout.css                      # Layout utilities only
+│   │
+│   ├── components/
+│   │   ├── basic/
+│   │   │   ├── button.css                  # Button styles only
+│   │   │   ├── input.css                   # Input styles only
+│   │   │   ├── label.css                   # Label styles only
+│   │   │   ├── icon.css                    # Icon styles only
+│   │   │   ├── badge.css                   # Badge styles only
+│   │   │   ├── spinner.css                 # Spinner styles only
+│   │   │   ├── tooltip.css                 # Tooltip styles only
+│   │   │   ├── toggle.css                  # Toggle styles only
+│   │   │   ├── checkbox.css                # Checkbox styles only
+│   │   │   ├── radio.css                   # Radio styles only
+│   │   │   ├── select.css                  # Select styles only
+│   │   │   └── divider.css                 # Divider styles only
+│   │   │
+│   │   ├── composite/
+│   │   │   ├── search-box.css              # Search box styles only
+│   │   │   ├── form-field.css              # Form field styles only
+│   │   │   ├── button-group.css            # Button group styles only
+│   │   │   ├── dropdown-menu.css           # Dropdown menu styles only
+│   │   │   ├── tab-item.css                # Tab item styles only
+│   │   │   ├── list-item.css               # List item styles only
+│   │   │   ├── card-section.css            # Card section styles only
+│   │   │   └── toolbar.css                 # Toolbar styles only
+│   │   │
+│   │   └── complex/
+│   │       ├── header.css                  # Header styles only
+│   │       ├── footer.css                  # Footer styles only
+│   │       ├── navigation.css              # Navigation styles only
+│   │       ├── sidebar.css                 # Sidebar styles only
+│   │       ├── form.css                    # Form styles only
+│   │       ├── table.css                   # Table styles only
+│   │       ├── list.css                    # List styles only
+│   │       ├── grid.css                    # Grid styles only
+│   │       ├── card.css                    # Card styles only
+│   │       ├── modal.css                   # Modal styles only
+│   │       ├── tabs.css                    # Tabs styles only
+│   │       └── accordion.css               # Accordion styles only
+│   │
+│   ├── pages/
+│   │   ├── popup-page.css                  # Popup page styles only
+│   │   ├── options-page.css                # Options page styles only
+│   │   └── content-overlay.css             # Content overlay styles only
+│   │
+│   ├── themes/
+│   │   ├── light-theme.css                 # Light theme only
+│   │   ├── dark-theme.css                  # Dark theme only
+│   │   └── high-contrast.css               # High contrast theme only
+│   │
+│   └── utilities/
+│       ├── animations.css                  # Animation utilities only
+│       ├── transitions.css                 # Transition utilities only
+│       ├── shadows.css                     # Shadow utilities only
+│       └── borders.css                     # Border utilities only
+│
+├── ui/                                     # UI Components (Pure Presentation Logic)
+│   ├── basic/
+│   │   ├── button.mjs                      # Button UI component only
+│   │   ├── input.mjs                       # Input UI component only
+│   │   ├── label.mjs                       # Label UI component only
+│   │   ├── icon.mjs                        # Icon UI component only
+│   │   ├── badge.mjs                       # Badge UI component only
+│   │   ├── spinner.mjs                     # Spinner UI component only
+│   │   ├── tooltip.mjs                     # Tooltip UI component only
+│   │   ├── toggle.mjs                      # Toggle UI component only
+│   │   ├── checkbox.mjs                    # Checkbox UI component only
+│   │   ├── radio.mjs                       # Radio UI component only
+│   │   ├── select.mjs                      # Select UI component only
+│   │   └── divider.mjs                     # Divider UI component only
+│   │
+│   ├── composite/
+│   │   ├── search-box.mjs                  # Search box UI component only
+│   │   ├── form-field.mjs                  # Form field UI component only
+│   │   ├── button-group.mjs                # Button group UI component only
+│   │   ├── dropdown-menu.mjs               # Dropdown menu UI component only
+│   │   ├── tab-item.mjs                    # Tab item UI component only
+│   │   ├── list-item.mjs                   # List item UI component only
+│   │   ├── card-section.mjs                # Card section UI component only
+│   │   └── toolbar.mjs                     # Toolbar UI component only
+│   │
+│   ├── complex/
+│   │   ├── header.mjs                      # Header UI component only
+│   │   ├── footer.mjs                      # Footer UI component only
+│   │   ├── navigation.mjs                  # Navigation UI component only
+│   │   ├── sidebar.mjs                     # Sidebar UI component only
+│   │   ├── form.mjs                        # Form UI component only
+│   │   ├── table.mjs                       # Table UI component only
+│   │   ├── list.mjs                        # List UI component only
+│   │   ├── grid.mjs                        # Grid UI component only
+│   │   ├── card.mjs                        # Card UI component only
+│   │   ├── modal.mjs                       # Modal UI component only
+│   │   ├── tabs.mjs                        # Tabs UI component only
+│   │   └── accordion.mjs                   # Accordion UI component only
+│   │
+│   └── layouts/
+│       ├── page-layout.mjs                 # Page layout UI only
+│       ├── popup-layout.mjs                # Popup layout UI only
+│       ├── options-layout.mjs              # Options layout UI only
+│       └── error-layout.mjs                # Error layout UI only
+│
+├── controllers/                            # Controllers (Event Handling Logic Only)
+│   ├── popup-controller.mjs              # Popup event handling only
+│   ├── options-controller.mjs            # Options event handling only
+│   ├── background-controller.mjs         # Background event handling only
+│   ├── content-controller.mjs            # Content script event handling only
+│   ├── form-controller.mjs               # Form event handling only
+│   ├── navigation-controller.mjs         # Navigation event handling only
+│   ├── modal-controller.mjs              # Modal event handling only
+│   ├── tab-controller.mjs                # Tab event handling only
+│   ├── search-controller.mjs             # Search event handling only
+│   └── settings-controller.mjs           # Settings event handling only
+│
+├── managers/                              # Managers (Resource Management Only)
+│   ├── state-manager.mjs                 # State management only
+│   ├── storage-manager.mjs               # Storage management only
+│   ├── cache-manager.mjs                 # Cache management only
+│   ├── session-manager.mjs               # Session management only
+│   ├── theme-manager.mjs                 # Theme management only
+│   ├── permission-manager.mjs            # Permission management only
+│   ├── notification-manager.mjs          # Notification management only
+│   ├── tab-manager.mjs                   # Tab management only
+│   ├── window-manager.mjs                # Window management only
+│   ├── extension-manager.mjs             # Extension lifecycle management only
+│   └── error-manager.mjs                 # Error management only
+│
+├── services/                             # Services (Business Logic Only)
+│   ├── api/
+│   │   ├── api-service.mjs               # Base API service only
+│   │   ├── auth-service.mjs              # Authentication service only
+│   │   ├── user-service.mjs              # User service only
+│   │   ├── data-service.mjs              # Data service only
+│   │   ├── search-service.mjs            # Search service only
+│   │   ├── analytics-service.mjs         # Analytics service only
+│   │   └── sync-service.mjs              # Synchronization service only
+│   │
+│   ├── storage/
+│   │   ├── local-storage-service.mjs     # Local storage service only
+│   │   ├── sync-storage-service.mjs      # Sync storage service only
+│   │   ├── session-storage-service.mjs   # Session storage service only
+│   │   ├── cache-service.mjs             # Cache service only
+│   │   └── backup-service.mjs            # Backup service only
+│   │
+│   ├── messaging/
+│   │   ├── message-service.mjs           # Message service only
+│   │   ├── background-message-service.mjs # Background messaging service only
+│   │   ├── content-message-service.mjs   # Content messaging service only
+│   │   └── popup-message-service.mjs     # Popup messaging service only
+│   │
+│   ├── security/
+│   │   ├── validation-service.mjs        # Validation service only
+│   │   ├── sanitization-service.mjs     # Sanitization service only
+│   │   ├── encryption-service.mjs       # Encryption service only
+│   │   └── auth-service.mjs              # Authorization service only
+│   │
+│   └── utility/
+│       ├── parsing-service.mjs           # Parsing service only
+│       ├── formatting-service.mjs        # Formatting service only
+│       ├── conversion-service.mjs        # Conversion service only
+│       └── calculation-service.mjs       # Calculation service only
+│
+├── handlers/                             # Handlers (Specific Event Processing Only)
+│   ├── click-handler.mjs                 # Click event handling only
+│   ├── keyboard-handler.mjs              # Keyboard event handling only
+│   ├── mouse-handler.mjs                 # Mouse event handling only
+│   ├── form-submit-handler.mjs           # Form submission handling only
+│   ├── input-change-handler.mjs          # Input change handling only
+│   ├── window-resize-handler.mjs         # Window resize handling only
+│   ├── storage-change-handler.mjs        # Storage change handling only
+│   ├── message-handler.mjs               # Message handling only
+│   ├── error-handler.mjs                 # Error handling only
+│   └── navigation-handler.mjs            # Navigation handling only
+│
+├── validators/                           # Validators (Data Validation Only)
+│   ├── form-validator.mjs                # Form validation only
+│   ├── input-validator.mjs               # Input validation only
+│   ├── email-validator.mjs               # Email validation only
+│   ├── url-validator.mjs                 # URL validation only
+│   ├── password-validator.mjs            # Password validation only
+│   ├── number-validator.mjs              # Number validation only
+│   ├── date-validator.mjs                # Date validation only
+│   ├── file-validator.mjs                # File validation only
+│   ├── json-validator.mjs                # JSON validation only
+│   └── schema-validator.mjs              # Schema validation only
+│
+├── formatters/                           # Formatters (Data Formatting Only)
+│   ├── date-formatter.mjs                # Date formatting only
+│   ├── number-formatter.mjs              # Number formatting only
+│   ├── currency-formatter.mjs            # Currency formatting only
+│   ├── text-formatter.mjs                # Text formatting only
+│   ├── url-formatter.mjs                 # URL formatting only
+│   ├── json-formatter.mjs                # JSON formatting only
+│   ├── html-formatter.mjs                # HTML formatting only
+│   └── css-formatter.mjs                 # CSS formatting only
+│
+├── models/                               # Models (Data Structures Only)
+│   ├── user-model.mjs                    # User data model only
+│   ├── settings-model.mjs                # Settings data model only
+│   ├── session-model.mjs                 # Session data model only
+│   ├── cache-model.mjs                   # Cache data model only
+│   ├── message-model.mjs                 # Message data model only
+│   ├── error-model.mjs                   # Error data model only
+│   ├── notification-model.mjs            # Notification data model only
+│   ├── tab-model.mjs                     # Tab data model only
+│   └── extension-model.mjs               # Extension data model only
+│
+├── interfaces/                           # Interfaces (Type Definitions Only)
+│   ├── api-interface.mjs                 # API interface definitions only
+│   ├── storage-interface.mjs             # Storage interface definitions only
+│   ├── message-interface.mjs             # Message interface definitions only
+│   ├── component-interface.mjs           # Component interface definitions only
+│   ├── service-interface.mjs             # Service interface definitions only
+│   ├── handler-interface.mjs             # Handler interface definitions only
+│   ├── validator-interface.mjs           # Validator interface definitions only
+│   └── formatter-interface.mjs           # Formatter interface definitions only
+│
+├── functions/                            # Utility Functions (Pure Functions Only)
+│   ├── dom/
+│   │   ├── element-selector.mjs          # DOM element selection functions only
+│   │   ├── element-creator.mjs           # DOM element creation functions only
+│   │   ├── element-modifier.mjs          # DOM modification functions only
+│   │   ├── element-traverser.mjs         # DOM navigation functions only
+│   │   ├── style-applier.mjs             # Style application functions only
+│   │   └── class-manipulator.mjs         # CSS class functions only
+│   │
+│   ├── data/
+│   │   ├── array-functions.mjs           # Array operation functions only
+│   │   ├── object-functions.mjs          # Object operation functions only
+│   │   ├── string-functions.mjs          # String operation functions only
+│   │   ├── number-functions.mjs          # Number operation functions only
+│   │   ├── date-functions.mjs            # Date operation functions only
+│   │   ├── url-functions.mjs             # URL operation functions only
+│   │   └── json-functions.mjs            # JSON operation functions only
+│   │
+│   ├── async/
+│   │   ├── debounce-function.mjs         # Debounce function only
+│   │   ├── throttle-function.mjs         # Throttle function only
+│   │   ├── delay-function.mjs            # Delay function only
+│   │   ├── timeout-function.mjs          # Timeout function only
+│   │   ├── retry-function.mjs            # Retry function only
+│   │   └── promise-functions.mjs         # Promise utility functions only
+│   │
+│   ├── validation/
+│   │   ├── type-checking.mjs             # Type checking functions only
+│   │   ├── range-checking.mjs            # Range validation functions only
+│   │   ├── format-checking.mjs           # Format validation functions only
+│   │   ├── pattern-matching.mjs          # Pattern matching functions only
+│   │   └── existence-checking.mjs        # Existence checking functions only
+│   │
+│   ├── conversion/
+│   │   ├── type-converter.mjs            # Type conversion functions only
+│   │   ├── format-converter.mjs          # Format conversion functions only
+│   │   ├── encoding-converter.mjs        # Encoding conversion functions only
+│   │   └── case-converter.mjs            # Case conversion functions only
+│   │
+│   ├── calculation/
+│   │   ├── math-functions.mjs            # Math calculation functions only
+│   │   ├── statistical-functions.mjs    # Statistical functions only
+│   │   ├── comparison-functions.mjs      # Comparison functions only
+│   │   └── sorting-functions.mjs         # Sorting functions only
+│   │
+│   └── utility/
+│       ├── id-generator.mjs              # ID generation functions only
+│       ├── hash-functions.mjs            # Hash generation functions only
+│       ├── random-functions.mjs          # Random generation functions only
+│       ├── clone-functions.mjs           # Deep/shallow clone functions only
+│       └── merge-functions.mjs           # Object merge functions only
+│
+├── content-scripts/                      # Content Script Entry Points Only
+│   ├── main-content-script.mjs           # Main content script entry only
+│   ├── background-content-script.mjs     # Background content script entry only
+│   └── popup-content-script.mjs          # Popup content script entry only
+│
+├── pages/                                # Page Entry Points Only  
+│   ├── popup-page.mjs                    # Popup page entry point only
+│   ├── options-page.mjs                  # Options page entry point only
+│   └── background-page.mjs               # Background page entry point only
+│
+├── hooks/                                # Reusable Logic Hooks Only
+│   ├── use-storage.mjs                   # Storage hook only
+│   ├── use-messaging.mjs                 # Messaging hook only
+│   ├── use-permissions.mjs               # Permissions hook only
+│   ├── use-tabs.mjs                      # Tabs hook only
+│   ├── use-analytics.mjs                 # Analytics hook only
+│   ├── use-theme.mjs                     # Theme hook only
+│   ├── use-settings.mjs                  # Settings hook only
+│   ├── use-validation.mjs                # Validation hook only
+│   ├── use-formatting.mjs                # Formatting hook only
+│   └── use-api.mjs                       # API hook only
+│
+├── assets/                               # Static Assets Only
+│   ├── icons/
+│   │   ├── icon-16.png                   # 16px icon
+│   │   ├── icon-48.png                   # 48px icon
+│   │   ├── icon-128.png                  # 128px icon
+│   │   └── icon.svg                      # Vector icon
+│   │
+│   ├── images/
+│   │   ├── logo.svg                      # Extension logo
+│   │   ├── placeholder.svg               # Placeholder image
+│   │   └── background.svg                # Background image
+│   │
+│   ├── fonts/
+│   │   ├── primary-font.woff2            # Primary font
+│   │   └── icon-font.woff2               # Icon font
+│   │
+│   └── data/
+│       ├── countries.json                # Country list
+│       ├── languages.json                # Language list
+│       └── timezones.json                # Timezone list
+│
+├── tests/                                # Test Files Only
+│   ├── unit/
+│   │   ├── ui/                           # UI component tests
+│   │   ├── controllers/                  # Controller tests
+│   │   ├── managers/                     # Manager tests
+│   │   ├── services/                     # Service tests
+│   │   ├── handlers/                     # Handler tests
+│   │   ├── validators/                   # Validator tests
+│   │   ├── formatters/                   # Formatter tests
+│   │   ├── functions/                    # Function tests
+│   │   └── hooks/                        # Hook tests
+│   │
+│   ├── integration/
+│   │   ├── messaging.test.mjs            # Message passing tests
+│   │   ├── storage.test.mjs              # Storage tests
+│   │   ├── api.test.mjs                  # API tests
+│   │   └── ui-integration.test.mjs       # UI integration tests
+│   │
+│   ├── e2e/
+│   │   ├── popup.test.mjs                # Popup E2E tests
+│   │   ├── options.test.mjs              # Options E2E tests
+│   │   ├── content-script.test.mjs       # Content script E2E tests
+│   │   └── full-workflow.test.mjs        # Full workflow tests
+│   │
+│   └── mocks/
+│       ├── chrome-api-mock.mjs           # Chrome API mocks
+│       ├── dom-mock.mjs                  # DOM mocks
+│       ├── api-mock.mjs                  # API mocks
+│       └── data-mock.mjs                 # Data mocks
+│
+├── config/                               # Configuration Files Only
+│   ├── webpack.config.mjs                # Webpack configuration
+│   ├── jest.config.mjs                   # Jest configuration
+│   ├── eslint.config.mjs                 # ESLint configuration
+│   ├── prettier.config.mjs               # Prettier configuration
+│   ├── build.config.mjs                  # Build configuration
+│   └── deployment.config.mjs             # Deployment configuration
+│
+└── scripts/                              # Build Scripts Only
+    ├── build.mjs                         # Build script
+    ├── dev.mjs                           # Development script
+    ├── test.mjs                          # Test script
+    ├── package.mjs                       # Package script
+    ├── deploy.mjs                        # Deployment script
+    ├── clean.mjs                         # Cleanup script
+    └── lint.mjs                          # Linting script
+```
+
+## File Naming Conventions
+
+### Directory Names
+- **kebab-case** - all lowercase with hyphens
+- **singular nouns** - `component` not `components` (except where plural makes sense)
+- **descriptive** - clear purpose indication
+
+### File Names
+- **kebab-case** - all lowercase with hyphens
+- **descriptive** - purpose clearly indicated
+- **consistent extensions** - `.mjs` for modules, `.css` for styles
+- **no abbreviations** - `button.mjs` not `btn.mjs`
+
+### Reusable Organization Rules
+1. **Zero Duplication Principle (DRY)**
+   - **Reusable Foundation**: All common code organized naturally
+   - **Reusable Components**: UI components used across all pages/features
+   - **Common Services**: Business logic shared across all features
+   - **Base Classes**: Foundational classes that other components extend
+   - **Centralized Utilities**: All utility functions in utilities/
+   - **Single Source of Truth**: Change once, updates everywhere automatically
+   - **No Code Duplication**: Absolutely no repeated code anywhere
+
+2. **Reusable Architecture Layers**
+   - **Foundation Layer**: core/ + utilities/ + services/
+   - **Component Layer**: components/ + templates/ + styles/
+   - **Feature Layer**: features/ (composed from reusable components)
+   - **Page Layer**: pages/ (uses reusable components and features)
+   - **Integration Layer**: content-scripts/ (uses reusable utilities)
+
+3. **Reusability Rules**
+   - **Write Once, Use Everywhere**: Every function/component written once
+   - **Composition over Duplication**: Build features by composing reusable components
+   - **Inheritance over Copying**: Extend base classes instead of copying code
+   - **Import over Rewrite**: Always import existing functionality instead of rewriting
+   - **Centralized Configuration**: All settings/constants in core/
+
+4. **Dependency Flow Rules (Reusable-First)**
+   - **Pages** depend on features/ + core/ + utilities/ + services/ + components/ only
+   - **Features** depend on core/ + utilities/ + services/ + components/ only
+   - **Components** depend on core/ + utilities/ only
+   - **Services** depend on core/ only
+   - **Utilities** depend on core/ only
+   - **Core** depends on nothing (foundation layer)
+
+## Reusable Import/Export Pattern
+```javascript
+// ✅ Reusable Base Class - Foundation for all components
+// core/base-classes.mjs
+export class BaseComponent {
+  constructor(config) {
+    this.config = config;
+    this.initialize();
+  }
+  
+  initialize() {
+    // Common initialization logic
+  }
+  
+  render() {
+    // Common rendering logic
+  }
+  
+  destroy() {
+    // Common cleanup logic
+  }
+}
+
+// ✅ Reusable Utility Functions - Used everywhere
+// utilities/dom-utils.mjs
+export const createElement = (tag, options = {}) => { /* */ };
+export const addEventListeners = (element, events) => { /* */ };
+export const removeEventListeners = (element, events) => { /* */ };
+
+// ✅ Reusable Service - Centralized business logic
+// services/api-service.mjs
+export class ApiService {
+  static async get(url) { /* */ }
+  static async post(url, data) { /* */ }
+  static async put(url, data) { /* */ }
+  static async delete(url) { /* */ }
+}
+
+// ✅ Reusable Component - Composed from reusable utilities
+// components/button-component.mjs
+import { BaseComponent } from '../core/base-classes.mjs';
+import { createElement, addEventListeners } from '../utilities/dom-utils.mjs';
+
+export class ButtonComponent extends BaseComponent {
+  render() {
+    const button = createElement('button', this.config);
+    addEventListeners(button, this.config.events);
+    return button;
+  }
+}
+
+// ✅ Page Implementation - Uses reusable components
+// pages/popup-page.mjs
+import { ButtonComponent } from '../components/button-component.mjs';
+import { ApiService } from '../services/api-service.mjs';
+import { createElement } from '../utilities/dom-utils.mjs';
+
+class PopupPage {
+  constructor() {
+    this.button = new ButtonComponent({
+      text: 'Click Me',
+      events: { click: this.handleClick.bind(this) }
+    });
+  }
+  
+  async handleClick() {
+    const data = await ApiService.get('/api/data');
+    // Use reusable utilities and components
+  }
+}
+```
+
+## Benefits of REUSABLE Structure
+
+### Zero Duplication Benefits (DRY Principle)
+- **Write Once, Use Everywhere** - Every function/component written once and reused
+- **Single Source of Truth** - Change once, updates everywhere automatically
+- **No Code Duplication** - Absolutely no repeated code anywhere in the project
+- **Consistent Behavior** - Same functionality works identically across all features
+- **Reduced Maintenance** - Fix bugs once, they're fixed everywhere
+
+### Professional Development Benefits
+- **Enterprise-Level Reusability** - Professional software architecture with maximum reuse
+- **Clean Code Principles** - DRY, Single Responsibility, Open/Closed, Dependency Inversion
+- **Maintainability** - Find and modify ANY functionality in seconds
+- **Scalability** - Add infinite features by composing existing shared components
+- **Team Collaboration** - Multiple developers work on different features using same shared foundation
+
+### Technical Benefits  
+- **Maximum Code Reuse** - Build features by composing shared components
+- **Centralized Logic** - All business logic in shared services
+- **Consistent APIs** - Same interfaces across all features
+- **Performance Optimization** - Load shared components once, use everywhere
+- **Memory Efficiency** - Shared components loaded once, reused everywhere
+
+### Developer Experience Benefits
+- **Instant Reuse** - Find existing functionality and reuse it immediately
+- **Predictable Structure** - Every developer knows exactly where shared code is
+- **Easy Debugging** - Fix issues in shared code, fixes everywhere
+- **Rapid Development** - Build features by composing existing shared components
+- **Future-Proof** - Add new features by extending shared foundation
+
+### Chrome Extension Specific Benefits
+- **Manifest V3 Optimized** - Perfect alignment with Chrome's module system
+- **Service Worker Efficient** - Shared utilities loaded once, used everywhere
+- **Content Script Precision** - Load only required shared modules per page
+- **Storage Optimization** - Centralized storage service for efficient chrome.storage usage
+- **Permission Minimization** - Request only exact permissions needed per shared module

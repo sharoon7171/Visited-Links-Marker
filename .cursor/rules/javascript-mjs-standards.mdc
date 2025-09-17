@@ -1,0 +1,355 @@
+---
+description: Modern JavaScript/MJS Standards for Chrome Extensions - ES2024+ Features
+globs:
+- "**/*.mjs"
+- "**/*.js"
+- "**/service-worker.*"
+alwaysApply: true
+priority: critical
+---
+
+# Modern JavaScript/MJS Standards for Chrome Extensions
+
+## ES Module Requirements (.mjs files)
+- **Always use .mjs extension** for all JavaScript modules EXCEPT service workers
+- **Service Workers (.js files)** - Use .js extension without imports
+- **Explicit imports/exports** - no CommonJS require()
+- **Top-level await** - use when needed for async initialization
+- **Import maps** - define in manifest.json for cleaner imports
+
+## Service Worker Requirements (.js files)
+- **Use .js extension only** - Service workers must use .js, not .mjs
+- **NO ES6 imports** - Service workers don't support `import` statements
+- **NO dynamic imports** - Service workers don't support dynamic imports
+- **Use IIFE pattern** - Wrap code in Immediately Invoked Function Expression
+- **Use chrome.* APIs directly** - Access Chrome APIs without imports
+- **Self-contained code** - All functionality must be in the service worker file
+
+```javascript
+// ✅ Service Worker Pattern (.js files)
+(function() {
+  'use strict';
+  
+  // Service worker installation
+  self.addEventListener('install', (event) => {
+    console.log('Service worker installing...');
+    self.skipWaiting();
+  });
+
+  // Service worker activation
+  self.addEventListener('activate', (event) => {
+    console.log('Service worker activating...');
+    event.waitUntil(clients.claim());
+  });
+
+  // Message handling from content scripts/popup
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    handleMessage(request, sender).then(sendResponse);
+    return true; // Indicate async response
+  });
+
+  async function handleMessage(request, sender) {
+    const { action, data } = request;
+    
+    switch (action) {
+      case 'GET_USER_DATA':
+        return await getUserData(data.userId);
+      case 'UPDATE_SETTINGS':
+        return await updateSettings(data.settings);
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+  }
+})();
+```
+
+## ES2024+ Features to Use
+```javascript
+// ✅ Use these modern features
+// Array methods
+const users = await Promise.all(userIds.map(async id => fetchUser(id)));
+const activeUsers = users.filter(user => user.isActive);
+const usernames = users.flatMap(user => user.aliases);
+
+// Object methods
+const settings = Object.fromEntries(
+  Object.entries(rawSettings).filter(([key, value]) => value !== null)
+);
+
+// Optional chaining & nullish coalescing
+const userName = user?.profile?.name ?? 'Anonymous';
+const config = settings?.theme?.mode ?? 'dark';
+
+// Destructuring with defaults
+const { timeout = 5000, retries = 3 } = options;
+
+// Template literals for complex strings
+const apiUrl = `${baseUrl}/api/v${version}/users/${userId}`;
+```
+
+## Async/Await Patterns
+```javascript
+// ✅ Chrome Extension API Wrapper Pattern
+class ChromeStorageManager {
+  static async get(keys) {
+    try {
+      return await chrome.storage.sync.get(keys);
+    } catch (error) {
+      console.error('Storage get failed:', error);
+      throw new StorageError('Failed to retrieve data', error);
+    }
+  }
+
+  static async set(data) {
+    try {
+      await chrome.storage.sync.set(data);
+      return true;
+    } catch (error) {
+      console.error('Storage set failed:', error);
+      throw new StorageError('Failed to save data', error);
+    }
+  }
+}
+
+// ✅ Service Worker Message Handler
+self.addEventListener('message', async (event) => {
+  const { action, data } = event.data;
+  
+  try {
+    const result = await handleAction(action, data);
+    event.ports[0].postMessage({ success: true, data: result });
+  } catch (error) {
+    event.ports[0].postMessage({ success: false, error: error.message });
+  }
+});
+```
+
+## Error Handling Standards
+```javascript
+// ✅ Custom Error Classes
+class ExtensionError extends Error {
+  constructor(message, code, originalError = null) {
+    super(message);
+    this.name = 'ExtensionError';
+    this.code = code;
+    this.originalError = originalError;
+    this.timestamp = Date.now();
+  }
+}
+
+class StorageError extends ExtensionError {
+  constructor(message, originalError = null) {
+    super(message, 'STORAGE_ERROR', originalError);
+    this.name = 'StorageError';
+  }
+}
+
+// ✅ Robust Error Handling Pattern
+async function safeApiCall(apiFunction, fallbackValue = null) {
+  try {
+    return await apiFunction();
+  } catch (error) {
+    console.error('API call failed:', error);
+    
+    // Log to extension error tracking
+    await logError(error);
+    
+    return fallbackValue;
+  }
+}
+```
+
+## Service Worker Patterns
+```javascript
+// ✅ service-worker.mjs Template
+// Import utilities
+import { StorageManager } from './lib/storage-manager.mjs';
+import { ApiClient } from './lib/api-client.mjs';
+
+// Service worker installation
+self.addEventListener('install', (event) => {
+  console.log('Service worker installing...');
+  self.skipWaiting();
+});
+
+// Service worker activation
+self.addEventListener('activate', (event) => {
+  console.log('Service worker activating...');
+  event.waitUntil(clients.claim());
+});
+
+// Message handling from content scripts/popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  handleMessage(request, sender).then(sendResponse);
+  return true; // Indicate async response
+});
+
+async function handleMessage(request, sender) {
+  const { action, data } = request;
+  
+  switch (action) {
+    case 'GET_USER_DATA':
+      return await getUserData(data.userId);
+    case 'UPDATE_SETTINGS':
+      return await updateSettings(data.settings);
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
+}
+```
+
+## Content Script Patterns
+```javascript
+// ✅ content-main.mjs Template
+// Avoid global namespace pollution
+(async function initContentScript() {
+  // Check if already initialized
+  if (window.extensionInitialized) return;
+  window.extensionInitialized = true;
+
+  try {
+    // ✅ BUNDLED DYNAMIC IMPORTS - Load all modules in parallel
+    // Content scripts don't support direct ES6 imports, must use dynamic imports
+    const [
+      { DOMUtils },
+      { MessageHandler },
+      { StorageManager },
+      { ApiClient }
+    ] = await Promise.all([
+      import(chrome.runtime.getURL('utilities/dom-utils.mjs')),
+      import(chrome.runtime.getURL('utilities/messaging-utils.mjs')),
+      import(chrome.runtime.getURL('services/storage-service.mjs')),
+      import(chrome.runtime.getURL('services/api-service.mjs'))
+    ]);
+
+    // Initialize extension features
+    await initializeExtensionFeatures();
+    
+    // Set up message listener
+    chrome.runtime.onMessage.addListener(handleContentMessage);
+    
+    async function handleContentMessage(request, sender, sendResponse) {
+      try {
+        const result = await processMessage(request);
+        sendResponse({ success: true, data: result });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    }
+  } catch (error) {
+    console.error('Content script initialization failed:', error);
+  }
+})();
+```
+
+## Modern DOM Manipulation
+```javascript
+// ✅ Use modern DOM APIs
+class DOMManager {
+  // Query methods
+  static select(selector, context = document) {
+    return context.querySelector(selector);
+  }
+  
+  static selectAll(selector, context = document) {
+    return [...context.querySelectorAll(selector)];
+  }
+  
+  // Creation with modern approaches
+  static createElement(tag, options = {}) {
+    const element = document.createElement(tag);
+    
+    if (options.className) element.className = options.className;
+    if (options.textContent) element.textContent = options.textContent;
+    if (options.attributes) {
+      Object.entries(options.attributes).forEach(([key, value]) => {
+        element.setAttribute(key, value);
+      });
+    }
+    if (options.dataset) {
+      Object.entries(options.dataset).forEach(([key, value]) => {
+        element.dataset[key] = value;
+      });
+    }
+    
+    return element;
+  }
+  
+  // Event handling with AbortController
+  static addEventListeners(element, events, signal) {
+    Object.entries(events).forEach(([event, handler]) => {
+      element.addEventListener(event, handler, { signal });
+    });
+  }
+}
+
+// ✅ Cleanup pattern with AbortController
+const controller = new AbortController();
+
+// Add listeners that will be automatically cleaned up
+DOMManager.addEventListeners(document, {
+  'click': handleClick,
+  'keydown': handleKeydown
+}, controller.signal);
+
+// Cleanup when needed
+function cleanup() {
+  controller.abort();
+}
+```
+
+## Performance Optimizations
+```javascript
+// ✅ Debouncing and throttling
+function createDebouncer(delay) {
+  let timeoutId;
+  return function debounce(fn, ...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+function createThrottler(limit) {
+  let inThrottle;
+  return function throttle(fn, ...args) {
+    if (!inThrottle) {
+      fn.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+// ✅ Efficient data processing
+const processLargeDataset = async (data) => {
+  const CHUNK_SIZE = 100;
+  const results = [];
+  
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    const chunk = data.slice(i, i + CHUNK_SIZE);
+    const processed = await processChunk(chunk);
+    results.push(...processed);
+    
+    // Yield control to prevent blocking
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  
+  return results;
+};
+```
+
+## Import/Export Standards
+
+### Content Scripts (Special Requirements)
+- **NO direct ES6 imports** - Content scripts don't support `import` statements
+- **MUST use dynamic imports** - `import(chrome.runtime.getURL('path.mjs'))`
+- **BUNDLED imports only** - Load all modules in parallel with `Promise.all()`
+- **All imports at once** - Don't use separate dynamic imports
+- **Error handling required** - Wrap all imports in try/catch
+
+### Other Files (Service Workers, Popup, Options)
+- **ES Module syntax** - use import/export, no require()
+- **Group imports** - external, internal, relative
+- **Single default export** per module when possible
+- **Named exports** for utility collections
+- **Clear module boundaries** - see @shared-reusable-project-structure

@@ -1,0 +1,125 @@
+---
+description: Chrome Extension Development - Manifest V3, Modern JavaScript, Latest Standards
+globs:
+- "**/manifest.json"
+- "**/service-worker.*"
+- "**/*.mjs"
+- "**/*.js"
+- "**/popup/**"
+- "**/options/**"
+- "**/content-scripts/**"
+- "**/background/**"
+alwaysApply: true
+priority: critical
+---
+
+# Chrome Extension Development Rules - Professional Standards
+
+## Core Development Philosophy
+- **Manifest V3 ONLY** - No legacy Manifest V2 code
+- **Service Workers** instead of background pages
+- **ES Modules (.mjs)** for all JavaScript files except service workers
+- **Service Workers (.js)** - Use .js extension without imports for service workers
+- **Modern Web APIs** - use latest Chrome extension APIs
+- **Security-first approach** - minimal permissions, CSP compliance
+- **Performance-optimized** - lazy loading, efficient memory usage
+
+## Project Organization
+- **Use @shared-reusable-project-structure** for detailed architecture guidance
+- **Component hierarchy** - components separated by complexity level
+- **Single file per component** - no mixing of responsibilities
+
+## Manifest V3 Requirements
+- Always use `"manifest_version": 3`
+- Use `service_worker` for background scripts
+- Implement `action` instead of `browser_action`
+- Use `host_permissions` instead of `permissions` for sites
+- Follow Content Security Policy v3 rules
+
+## Code Standards
+- **Follow @shared-reusable-project-structure** - for naming conventions
+- **Use @codebase-analysis-agent** - for thorough analysis and implementation
+- **Async/await only** - no callbacks or .then() chains
+- **Comprehensive error handling** - with custom error classes
+
+## Service Worker Requirements
+- **Use .js extension only** - Service workers must use .js, not .mjs
+- **NO ES6 imports** - Service workers don't support `import` statements
+- **NO dynamic imports** - Service workers don't support dynamic imports
+- **Use IIFE pattern** - Wrap code in Immediately Invoked Function Expression
+- **Use chrome.* APIs directly** - Access Chrome APIs without imports
+- **Self-contained code** - All functionality must be in the service worker file
+
+## Content Script Requirements
+- **NO direct ES6 imports** - Content scripts don't support `import` statements
+- **MUST use bundled dynamic imports** - Load all modules in parallel with `Promise.all()`
+- **All imports at once** - Don't use separate dynamic imports
+- **Use chrome.runtime.getURL()** - For resolving module paths
+- **Wrap in try/catch** - Handle import failures gracefully
+
+## Chrome APIs - Latest Approaches
+
+### Service Worker (.js files)
+```javascript
+// ✅ Service Worker Chrome APIs Usage (NO imports)
+(function() {
+  'use strict';
+  
+  // Storage API (sync/local)
+  chrome.storage.sync.set({ key: value });
+  chrome.storage.sync.get(['key'], (result) => {
+    console.log(result);
+  });
+
+  // Messaging API
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'getData') {
+      // Handle message
+      sendResponse({ success: true, data: 'response' });
+    }
+  });
+
+  // Action API (replaces browserAction)
+  chrome.action.setTitle({ title: 'New Title' });
+  chrome.action.setBadgeText({ text: '5' });
+})();
+```
+
+### Other Files (.mjs files)
+```javascript
+// ✅ Modern Chrome APIs Usage with imports
+import { chrome } from 'chrome://global/';
+
+// Storage API (sync/local) - See @javascript-mjs-standards for detailed examples
+await chrome.storage.sync.set({ key: value });
+const result = await chrome.storage.sync.get(['key']);
+
+// Messaging API
+await chrome.runtime.sendMessage({ action: 'getData' });
+await chrome.tabs.sendMessage(tabId, { type: 'UPDATE_UI' });
+
+// Action API (replaces browserAction)
+await chrome.action.setTitle({ title: 'New Title' });
+await chrome.action.setBadgeText({ text: '5' });
+```
+
+## Performance Standards
+- **See @javascript-mjs-standards** - for detailed performance patterns
+- **Service Workers**: Self-contained code, no imports, use IIFE pattern
+- **Content Scripts**: Bundle all dynamic imports with Promise.all() for parallel loading
+- **Other Files**: Lazy load modules - import only when needed
+- **Cache API responses** - use chrome.storage for caching
+
+## Security Requirements
+- **Minimal permissions** - request only what's absolutely needed
+- **CSP v3 compliance** - no inline scripts, use hash/nonce
+- **Sanitize all inputs** - prevent XSS attacks
+- **Validate all messages** - between content scripts and background
+- **Use HTTPS** - for all external API calls
+
+## Code Quality Standards
+- **TypeScript JSDoc** - document all functions with types
+- **ESLint + Prettier** - enforce consistent formatting
+- **Unit tests** - test all utility functions
+- **Error logging** - comprehensive error tracking
+- **Version control** - semantic versioning for releases

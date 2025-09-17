@@ -1,0 +1,534 @@
+---
+description: Chrome Extension Security & Permissions - Zero-Trust Security Model
+globs:
+- "**/manifest.json"
+- "**/*security*"
+- "**/*permission*"
+- "**/background/**"
+- "**/content-scripts/**"
+alwaysApply: true
+priority: critical
+---
+
+# Chrome Extension Security & Permissions Standards
+
+## Security-First Mindset
+- **Minimal Permissions** - Request only what's absolutely necessary
+- **Zero-Trust Architecture** - Validate all inputs and messages
+- **Defense in Depth** - Multiple security layers
+- **Secure by Default** - Safe defaults for all configurations
+- **Regular Security Audits** - Continuous security assessment
+
+## Manifest V3 Security Requirements
+```json
+{
+  "manifest_version": 3,
+  "name": "Extension Name",
+  "version": "1.0.0",
+  
+  "permissions": [
+    // ✅ Only request essential permissions
+    "storage",
+    "activeTab"
+    // ❌ Avoid broad permissions like "tabs", "<all_urls>"
+  ],
+  
+  "host_permissions": [
+    // ✅ Specific domains only
+    "https://api.yourservice.com/*",
+    "https://yourdomain.com/*"
+    // ❌ Never use "*://*/*" or "<all_urls>"
+  ],
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/images/*.png"],
+      "matches": ["https://yourdomain.com/*"],
+      "use_dynamic_url": true
+    }
+  ]
+}
+```
+
+## Permission Management Best Practices
+```javascript
+// ✅ Runtime Permission Requests
+class PermissionManager {
+  static async requestPermission(permission) {
+    try {
+      const granted = await chrome.permissions.request({
+        permissions: [permission]
+      });
+      
+      if (!granted) {
+        throw new PermissionError(`Permission denied: ${permission}`);
+      }
+      
+      console.log(`Permission granted: ${permission}`);
+      return true;
+    } catch (error) {
+      console.error('Permission request failed:', error);
+      return false;
+    }
+  }
+  
+  static async checkPermission(permission) {
+    return await chrome.permissions.contains({
+      permissions: [permission]
+    });
+  }
+  
+  static async removePermission(permission) {
+    return await chrome.permissions.remove({
+      permissions: [permission]
+    });
+  }
+}
+
+// ✅ Conditional Feature Activation
+async function initializeFeatures() {
+  const hasTabsPermission = await PermissionManager.checkPermission('tabs');
+  
+  if (hasTabsPermission) {
+    // Enable tab management features
+    await initializeTabManagement();
+  } else {
+    // Show permission request UI
+    showPermissionPrompt('tabs', 'Tab management requires access to browser tabs');
+  }
+}
+```
+
+## Input Validation & Sanitization
+```javascript
+// ✅ Input Validation Utilities
+class SecurityUtils {
+  static validateUrl(url) {
+    try {
+      const parsedUrl = new URL(url);
+      
+      // Only allow HTTPS (except localhost for development)
+      if (parsedUrl.protocol !== 'https:' && 
+          !['localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {
+        throw new SecurityError('Only HTTPS URLs are allowed');
+      }
+      
+      return parsedUrl.href;
+    } catch (error) {
+      throw new SecurityError('Invalid URL format');
+    }
+  }
+  
+  static sanitizeString(input, maxLength = 1000) {
+    if (typeof input !== 'string') {
+      throw new SecurityError('Input must be a string');
+    }
+    
+    if (input.length > maxLength) {
+      throw new SecurityError(`Input exceeds maximum length of ${maxLength}`);
+    }
+    
+    // Remove potentially dangerous characters
+    return input
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '')
+      .trim();
+  }
+  
+  static validateMessageStructure(message, expectedFields) {
+    if (!message || typeof message !== 'object') {
+      throw new SecurityError('Invalid message format');
+    }
+    
+    for (const field of expectedFields) {
+      if (!(field in message)) {
+        throw new SecurityError(`Missing required field: ${field}`);
+      }
+    }
+    
+    return true;
+  }
+}
+```
+
+## Secure Message Passing
+```javascript
+// ✅ Secure Content Script Communication
+class SecureMessaging {
+  static async sendToBackground(action, data = {}) {
+    // Validate message structure
+    const message = {
+      action: SecurityUtils.sanitizeString(action, 100),
+      data: this.sanitizeData(data),
+      timestamp: Date.now(),
+      sender: 'content-script'
+    };
+    
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      
+      if (!response || !response.success) {
+        throw new CommunicationError(response?.error || 'Unknown error');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Background communication failed:', error);
+      throw error;
+    }
+  }
+  
+  static sanitizeData(data) {
+    if (data === null || data === undefined) return data;
+    
+    if (typeof data === 'string') {
+      return SecurityUtils.sanitizeString(data);
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(item => this.sanitizeData(item));
+    }
+    
+    if (typeof data === 'object') {
+      const sanitized = {};
+      for (const [key, value] of Object.entries(data)) {
+        sanitized[SecurityUtils.sanitizeString(key, 100)] = this.sanitizeData(value);
+      }
+      return sanitized;
+    }
+    
+    return data;
+  }
+}
+
+// ✅ Service Worker Message Handler with Validation
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleSecureMessage(message, sender).then(sendResponse);
+  return true;
+});
+
+async function handleSecureMessage(message, sender) {
+  try {
+    // Validate sender origin
+    if (!isValidSender(sender)) {
+      throw new SecurityError('Invalid message sender');
+    }
+    
+    // Validate message structure
+    SecurityUtils.validateMessageStructure(message, ['action', 'sender', 'timestamp']);
+    
+    // Check timestamp to prevent replay attacks
+    if (Date.now() - message.timestamp > 60000) {
+      throw new SecurityError('Message timestamp too old');
+    }
+    
+    const result = await processSecureAction(message.action, message.data);
+    return { success: true, data: result };
+    
+  } catch (error) {
+    console.error('Secure message handling failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+function isValidSender(sender) {
+  // Validate sender is from our extension
+  if (sender.id !== chrome.runtime.id) {
+    return false;
+  }
+  
+  // For content scripts, validate origin
+  if (sender.tab && sender.tab.url) {
+    const allowedOrigins = ['https://yourdomain.com', 'https://app.yourdomain.com'];
+    const senderOrigin = new URL(sender.tab.url).origin;
+    return allowedOrigins.includes(senderOrigin);
+  }
+  
+  return true;
+}
+```
+
+## Secure Data Storage
+```javascript
+// ✅ Encrypted Storage Manager
+class SecureStorageManager {
+  static async encryptData(data, key) {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(JSON.stringify(data));
+    const keyBuffer = encoder.encode(key);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt']
+    );
+    
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      cryptoKey,
+      dataBuffer
+    );
+    
+    return {
+      data: Array.from(new Uint8Array(encrypted)),
+      iv: Array.from(iv)
+    };
+  }
+  
+  static async decryptData(encryptedData, key) {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const keyBuffer = encoder.encode(key);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    );
+    
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(encryptedData.iv) },
+      cryptoKey,
+      new Uint8Array(encryptedData.data)
+    );
+    
+    return JSON.parse(decoder.decode(decrypted));
+  }
+  
+  static async setSecureData(key, data) {
+    const encryptionKey = await this.getOrCreateEncryptionKey();
+    const encrypted = await this.encryptData(data, encryptionKey);
+    
+    await chrome.storage.local.set({
+      [`secure_${key}`]: encrypted
+    });
+  }
+  
+  static async getSecureData(key) {
+    const encryptionKey = await this.getOrCreateEncryptionKey();
+    const result = await chrome.storage.local.get([`secure_${key}`]);
+    const encrypted = result[`secure_${key}`];
+    
+    if (!encrypted) return null;
+    
+    return await this.decryptData(encrypted, encryptionKey);
+  }
+  
+  static async getOrCreateEncryptionKey() {
+    // In production, this should be derived from user authentication
+    const result = await chrome.storage.local.get(['encryption_key']);
+    
+    if (result.encryption_key) {
+      return result.encryption_key;
+    }
+    
+    // Generate new key
+    const key = crypto.getRandomValues(new Uint8Array(32));
+    const keyString = Array.from(key, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    await chrome.storage.local.set({ encryption_key: keyString });
+    return keyString;
+  }
+}
+```
+
+## Content Security Policy (CSP)
+```javascript
+// ✅ CSP-Compliant Code Patterns
+class CSPCompliantUI {
+  static createSecureElement(tag, options = {}) {
+    const element = document.createElement(tag);
+    
+    // ❌ Never use innerHTML with user data
+    // element.innerHTML = userContent; // DANGEROUS
+    
+    // ✅ Use textContent or controlled DOM manipulation
+    if (options.textContent) {
+      element.textContent = options.textContent;
+    }
+    
+    if (options.attributes) {
+      Object.entries(options.attributes).forEach(([key, value]) => {
+        // Validate attribute names
+        if (!/^[a-zA-Z-]+$/.test(key)) {
+          throw new SecurityError(`Invalid attribute name: ${key}`);
+        }
+        element.setAttribute(key, value);
+      });
+    }
+    
+    return element;
+  }
+  
+  static addSecureEventListener(element, event, handler) {
+    // ✅ Use addEventListener instead of onclick attributes
+    element.addEventListener(event, (e) => {
+      // Validate event
+      if (!this.isValidEvent(e)) {
+        e.preventDefault();
+        return;
+      }
+      
+      handler(e);
+    });
+  }
+  
+  static isValidEvent(event) {
+    // Basic event validation
+    return event && typeof event.preventDefault === 'function';
+  }
+}
+```
+
+## API Security
+```javascript
+// ✅ Secure API Client
+class SecureApiClient {
+  constructor(baseUrl, apiKey) {
+    this.baseUrl = SecurityUtils.validateUrl(baseUrl);
+    this.apiKey = apiKey;
+    this.rateLimiter = new RateLimiter(10, 60000); // 10 requests per minute
+  }
+  
+  async makeRequest(endpoint, options = {}) {
+    // Rate limiting
+    if (!await this.rateLimiter.canMakeRequest()) {
+      throw new SecurityError('Rate limit exceeded');
+    }
+    
+    const url = new URL(endpoint, this.baseUrl);
+    
+    // Validate URL
+    if (url.origin !== new URL(this.baseUrl).origin) {
+      throw new SecurityError('URL origin mismatch');
+    }
+    
+    const requestOptions = {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'User-Agent': `ChromeExtension/${chrome.runtime.getManifest().version}`,
+        ...options.headers
+      }
+    };
+    
+    if (options.body) {
+      requestOptions.body = JSON.stringify(this.sanitizeRequestBody(options.body));
+    }
+    
+    try {
+      const response = await fetch(url.href, requestOptions);
+      
+      if (!response.ok) {
+        throw new ApiError(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
+  
+  sanitizeRequestBody(body) {
+    // Deep sanitization of request body
+    return SecurityUtils.sanitizeData(body);
+  }
+}
+
+class RateLimiter {
+  constructor(maxRequests, timeWindow) {
+    this.maxRequests = maxRequests;
+    this.timeWindow = timeWindow;
+    this.requests = [];
+  }
+  
+  async canMakeRequest() {
+    const now = Date.now();
+    
+    // Remove old requests outside time window
+    this.requests = this.requests.filter(time => now - time < this.timeWindow);
+    
+    if (this.requests.length >= this.maxRequests) {
+      return false;
+    }
+    
+    this.requests.push(now);
+    return true;
+  }
+}
+```
+
+## Security Monitoring & Logging
+```javascript
+// ✅ Security Event Logging
+class SecurityLogger {
+  static async logSecurityEvent(eventType, details = {}) {
+    const event = {
+      type: eventType,
+      timestamp: Date.now(),
+      details: SecurityUtils.sanitizeData(details),
+      userAgent: navigator.userAgent,
+      extensionVersion: chrome.runtime.getManifest().version
+    };
+    
+    // Store locally (consider sending to secure endpoint in production)
+    await this.storeSecurityEvent(event);
+    
+    // Log critical events to console
+    if (this.isCriticalEvent(eventType)) {
+      console.warn('Security Event:', event);
+    }
+  }
+  
+  static async storeSecurityEvent(event) {
+    const existingEvents = await chrome.storage.local.get(['security_events']);
+    const events = existingEvents.security_events || [];
+    
+    events.push(event);
+    
+    // Keep only last 100 events
+    if (events.length > 100) {
+      events.splice(0, events.length - 100);
+    }
+    
+    await chrome.storage.local.set({ security_events: events });
+  }
+  
+  static isCriticalEvent(eventType) {
+    const criticalEvents = [
+      'PERMISSION_DENIED',
+      'INVALID_SENDER',
+      'CSP_VIOLATION',
+      'UNAUTHORIZED_ACCESS',
+      'RATE_LIMIT_EXCEEDED'
+    ];
+    
+    return criticalEvents.includes(eventType);
+  }
+}
+```
+
+## Security Checklist
+### Pre-deployment Security Review
+- [ ] Minimal permissions requested in manifest
+- [ ] All user inputs validated and sanitized
+- [ ] CSP properly configured and tested
+- [ ] No inline scripts or event handlers
+- [ ] HTTPS-only external communications
+- [ ] Secure storage for sensitive data
+- [ ] Rate limiting for API calls
+- [ ] Error handling doesn't leak sensitive info
+- [ ] Security event logging implemented
+- [ ] Regular security dependency updates

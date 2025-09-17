@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visited Links Marker</title>
+  <link rel="stylesheet" href="../../styles/popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="header-content">
+        <img src="../../assets/icon-128.png" alt="Extension Icon" class="extension-icon">
+        <h1>Visited Links Marker</h1>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot loading"></span>
+        <span class="status-text">Loading...</span>
+      </div>
+    </header>
+
+    <main class="popup-main">
+      <!-- Loading overlay -->
+      <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading settings...</p>
+      </div>
+
+      <!-- Settings content (hidden initially) -->
+      <div id="settings-content" class="settings-content hidden">
+        <section class="settings-section">
+          <!-- Global Settings -->
+          <div class="settings-group global-settings">
+            <div class="group-header">
+              <h3>🌐 Global Settings</h3>
+              <p class="group-subtitle">Apply to all websites</p>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-label">
+                <label for="global-toggle">Master Enable</label>
+                <span class="setting-description">Turn extension on/off</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="global-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-label">
+                <label for="global-color-picker">Default Color</label>
+                <span class="setting-description">Color for visited links</span>
+              </div>
+              <div class="color-controls">
+                <input type="color" id="global-color-picker" value="#000000">
+                <input type="text" id="global-color-hex" placeholder="#551a8b" maxlength="7">
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Site-Specific Settings -->
+          <div class="settings-group site-settings">
+            <div class="group-header">
+              <h3>🎯 Current Site</h3>
+              <p class="group-subtitle" id="site-name">Unknown</p>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-label">
+                <label for="site-toggle">Enable Here</label>
+                <span class="setting-description">Override for this site</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="site-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-label">
+                <label for="use-custom-color">Use Custom Color</label>
+                <span class="setting-description">Override global color for this site</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="use-custom-color">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item" id="site-color-row">
+              <div class="setting-label">
+                <label for="site-color-picker">Site Color</label>
+                <span class="setting-description">Color for this site (overrides global)</span>
+              </div>
+              <div class="color-controls">
+                <input type="color" id="site-color-picker" value="#000000">
+                <input type="text" id="site-color-hex" placeholder="#551a8b" maxlength="7">
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <div class="footer-content">
+        <div class="footer-links">
+          <button id="privacy-policy-btn" class="footer-link">Privacy Policy</button>
+          <span class="footer-separator">•</span>
+          <button id="terms-conditions-btn" class="footer-link">Terms & Conditions</button>
+          <span class="footer-separator">•</span>
+          <button id="credits-btn" class="footer-link">Credits</button>
+        </div>
+        <div class="footer-attribution">
+          <span>Made with ❤️ by <a href="https://sqtech.dev" target="_blank" rel="noopener" class="footer-link">SQ Tech</a></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+
+  <script type="module" src="popup.mjs"></script>
+</body>
+</html>
