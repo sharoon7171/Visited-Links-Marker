@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Visited Links Marker",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Mark visited links with customizable colors across all websites",
   "permissions": [
     "storage",
